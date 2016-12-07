@@ -1,0 +1,6 @@
+*.pyc
+data/
+# Editors
+*.swp
+.project
+.pydevproject

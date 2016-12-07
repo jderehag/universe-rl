@@ -1,0 +1,110 @@
+#######################################################################################################################
+#
+# Copyright (c) 2015, Jesper Derehag <jderehag@hotmail.com>
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without modification,
+# are permitted provided that the following conditions are met:
+#
+# 1. Redistributions of source code must retain the above copyright notice, this list of conditions
+# and the following disclaimer.
+#
+# 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following
+# disclaimer in the documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+# INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+# OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+# WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+[MASTER]
+ignore=.git
+persistent=no
+
+
+[MESSAGES CONTROL]
+disable=F, I, R, E1002, C0103, W0105, W0403, W0702, W0142
+
+[REPORTS]
+output-format=text
+files-output=no
+reports=yes
+evaluation=10.0 - ((float(5 * error + warning + refactor + convention) / statement) * 10)
+msg-template={msg_id}:{line:3d},{column:2d}: {msg} ({symbol})
+
+
+[TYPECHECK]
+ignore-mixin-members=yes
+ignored-modules = numpy,tensorflow
+ignored-classes = numpy,tensorflow
+generated-members=tensorflow.*
+
+[MISCELLANEOUS]
+notes=FIXME,XXX,TODO
+
+
+[SIMILARITIES]
+min-similarity-lines=4
+ignore-comments=yes
+ignore-docstrings=yes
+ignore-imports=no
+
+[FORMAT]
+max-line-length=120
+ignore-long-lines=^\s*(# )?<?https?://\S+>?$
+single-line-if-stmt=no
+no-space-check=trailing-comma,dict-separator
+max-module-lines=1000
+indent-string='    '
+
+[VARIABLES]
+init-import=no
+dummy-variables-rgx=_$|dummy
+additional-builtins=
+
+[BASIC]
+bad-functions=map,filter,apply,input
+
+module-rgx=(([a-z_][a-z0-9_]*)|([A-Z][a-zA-Z0-9]+))$
+const-rgx=(([A-Z_][A-Z0-9_]*)|(__.*__))$
+class-rgx=[A-Z_][a-zA-Z0-9]+$
+function-rgx=[a-z_][a-z0-9_]{2,30}$
+method-rgx=[a-z_][a-z0-9_]{2,30}$
+attr-rgx=[a-z_][a-z0-9_]{2,30}$
+argument-rgx=[a-z_][a-z0-9_]{2,30}$
+variable-rgx=[a-z_][a-z0-9_]{2,30}$
+class-attribute-rgx=([A-Za-z_][A-Za-z0-9_]{2,30}|(__.*__))$
+inlinevar-rgx=[A-Za-z_][A-Za-z0-9_]*$
+good-names=i,j,k,ex,Run,_
+bad-names=foo,bar,baz,toto,tutu,tata
+no-docstring-rgx=(__.*__|_.*)
+docstring-min-length=-1
+
+[IMPORTS]
+deprecated-modules=regsub,TERMIOS,Bastion,rexec
+import-graph=
+ext-import-graph=
+int-import-graph=
+
+[CLASSES]
+defining-attr-methods=__init__,__new__,setUp
+valid-classmethod-first-arg=cls
+valid-metaclass-classmethod-first-arg=mcs
+
+[DESIGN]
+max-args=5
+ignored-argument-names=_.*
+max-locals=15
+max-returns=6
+max-branches=12
+max-statements=50
+max-parents=7
+max-attributes=7
+min-public-methods=2
+max-public-methods=20
+
+[EXCEPTIONS]
+overgeneral-exceptions=Exception
