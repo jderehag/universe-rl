@@ -31,6 +31,30 @@ from universe import wrappers
 
 from rl import dqn
 
+class GenericActionSpace(object):
+    '''
+    Represents a translatable action space across many different environments
+    This is needed due to that universe action_spaces are not API compatible and needs to be slightly modified for
+    every enevironment.
+    '''
+    def __init__(self, action_space):
+        self.action_space = action_space
+        if isinstance(action_space, universe.spaces.hardcoded.Hardcoded):
+            self.n = len(self.action_space.actions)
+            self.actions = self.action_space.actions
+        else:
+            self.n = self.action_space.n
+            self.actions = range(0, self.n)
+
+    def __getitem__(self, i):
+        return self.actions[i]
+
+def _make_generic_frame(frame):
+    if isinstance(frame, dict):
+        return frame['vision']
+
+    return frame
+
 def _preprocess(observation):
     # preprocess raw image to 80*80 gray image
     observation = cv2.cvtColor(cv2.resize(observation, (84, 110)), cv2.COLOR_BGR2GRAY)
@@ -39,18 +63,20 @@ def _preprocess(observation):
 
 def _play_game(args):
     env = wrappers.SafeActionSpace(gym.make(args.game))
-    env.configure(remotes=1)
+    env.configure()
     env.reset()
+    action_space = GenericActionSpace(env.action_space)
 
-    agent = dqn.DQN(len(env.action_space.actions), checkpointpath=args.checkpoints, summarypath=args.summary)
+    agent = dqn.DQN(action_space.n, checkpointpath=args.checkpoints, summarypath=args.summary)
 
     action = 0
     while True:
-        # For now, assume single instance environment
-        frame, reward, terminal, _ = env.step([env.action_space[action]])
-        assert len(frame) == 1
-        action = agent.get_action(_preprocess(frame[0]), action, reward, terminal)
-        env.render()
+        # For now, assume single instance environment (1 frame/action per observation)
+        # zip(*X) Transposes observations
+        for frame, reward, terminal, _ in zip(*env.step([action_space[action]])):
+            if frame is not None:
+                action = agent.get_action(_preprocess(_make_generic_frame(frame)), action, reward, terminal)
+                env.render()
 
 def _main():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -61,7 +87,7 @@ def _main():
                         help='Path where to store summary data (for tensorboard)')
     parser.add_argument('-l', '--list', dest='list_games', action='store_true', default=False,
                         help="List all available openai.universe games")
-    parser.add_argument('game', nargs='?', default='flashgames.DuskDrive-v0',
+    parser.add_argument('game', nargs='?', default='Breakout-v0',
                         help="The openai.universe game-id to run")
     args = parser.parse_args()
 

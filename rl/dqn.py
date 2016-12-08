@@ -69,8 +69,8 @@ class DQN(object):
         self._prev_timestamp = time.clock()
 
         self._fps = tf.Variable(initial_value=0.0, dtype=tf.float32, name='frames_per_second')
-        self._game_score = tf.Variable(initial_value=0, dtype=tf.uint16, name='game_score')
-        self._game_score_tmp = 0
+        self._game_score = tf.Variable(initial_value=0.0, dtype=tf.float32, name='game_score')
+        self._game_score_tmp = 0.0
         self._loss_function = tf.Variable(initial_value=0.0, dtype=tf.float32, name='loss')
         self._epsilon = tf.Variable(initial_value=epsilon_init, dtype=tf.float32, name='epsilon')
 
@@ -202,7 +202,7 @@ class DQN(object):
         self._game_score_tmp += reward
         if terminal:
             self._game_score.assign(self._game_score_tmp).op.run()
-            self._game_score_tmp = 0
+            self._game_score_tmp = 0.0
 
         self._current_state = new_state
         self._timestep += 1
@@ -272,18 +272,20 @@ class DQN(object):
             actions[action] = 1
             return actions
 
-        minibatch = random.sample(self._replay_memory, self._minibatch_size)
-        state_batch = [data[0] for data in minibatch] # pylint: disable=unsubscriptable-object
-        action_batch = [__reshape_action(data[1]) for data in minibatch] # pylint: disable=unsubscriptable-object
-        reward_batch = [data[2] for data in minibatch] # pylint: disable=unsubscriptable-object
-        next_state_batch = [data[3] for data in minibatch] # pylint: disable=unsubscriptable-object
+        # zip(*X) transposes X
+        state_batch, \
+        action_batch, \
+        reward_batch, \
+        next_state_batch, \
+        terminal_batch = zip(*random.sample(self._replay_memory, self._minibatch_size))
 
-        print action_batch
+        action_batch = [__reshape_action(action) for action in action_batch]
+
         # Step 2: calculate y
         y_batch = []
         qvalue_batch = self._qvalue_t.eval(feed_dict={self._stateinput_t:next_state_batch})
         for i in range(0, self._minibatch_size):
-            terminal = minibatch[i][4]
+            terminal = terminal_batch[i]
             if terminal:
                 y_batch.append(reward_batch[i])
             else:
