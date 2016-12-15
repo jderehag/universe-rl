@@ -20,6 +20,7 @@ OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CA
 WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 '''
+from __future__ import print_function
 import os
 import sys
 import subprocess
@@ -81,7 +82,7 @@ def _main():
                 was_successful = False
 
     if not was_successful:
-        print os.path.basename(__file__), "failed!"
+        print(os.path.basename(__file__), "failed!")
         exit(1)
 
 if __name__ == '__main__':
