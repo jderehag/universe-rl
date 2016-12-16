@@ -20,6 +20,7 @@ OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CA
 WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 '''
+from __future__ import print_function
 import unittest
 import argparse
 import logging
@@ -28,7 +29,7 @@ import subprocess
 
 def _run_tests(args, path, pattern):
     loader = unittest.TestLoader().discover(start_dir=path, pattern=pattern)
-    print "Running unittests", pattern, "in", path
+    print("Running unittests", pattern, "in", path)
     result = unittest.runner.TextTestRunner(descriptions=not args.quicktest).run(loader)
     return result.wasSuccessful()
 
@@ -43,9 +44,9 @@ def _main():
     if args.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
 
-    rootdir = subprocess.check_output('git rev-parse --show-toplevel'.split()).strip()
-    if not _run_tests(args, path=rootdir, pattern="*_SUITE.py"):
-        print "Unittests failed, fix your crap and rerun", __file__
+    rootdir = subprocess.check_output('git rev-parse --show-toplevel'.split()).strip().decode("utf-8")
+    if not _run_tests(args, path=str(rootdir), pattern="*_SUITE.py"):
+        print("Unittests failed, fix your crap and rerun", __file__)
         exit(-1)
 
 if __name__ == '__main__':

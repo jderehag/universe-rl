@@ -32,6 +32,7 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
+
 class DQN(object):
     '''
     TODO: write a docstring

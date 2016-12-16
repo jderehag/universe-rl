@@ -20,9 +20,11 @@ OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CA
 WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 '''
-
-import os
+from __future__ import print_function
 import argparse
+import os
+import logging
+from logging.handlers import RotatingFileHandler
 
 import cv2
 import gym
@@ -30,6 +32,7 @@ import universe  # pylint: disable=unused-import
 from universe import wrappers
 
 from rl import dqn
+
 
 class GenericActionSpace(object):
     '''
@@ -49,17 +52,20 @@ class GenericActionSpace(object):
     def __getitem__(self, i):
         return self.actions[i]
 
+
 def _make_generic_frame(frame):
     if isinstance(frame, dict):
         return frame['vision']
 
     return frame
 
+
 def _preprocess(observation):
     # preprocess raw image to 80*80 gray image
     observation = cv2.cvtColor(cv2.resize(observation, (84, 110)), cv2.COLOR_BGR2GRAY)
     observation = observation[26:110, :]
     return cv2.threshold(observation, 1, 255, cv2.THRESH_BINARY)[1]
+
 
 def _play_game(args):
     env = wrappers.SafeActionSpace(gym.make(args.game))
@@ -78,6 +84,23 @@ def _play_game(args):
                 action = agent.get_action(_preprocess(_make_generic_frame(frame)), action, reward, terminal)
                 env.render()
 
+
+def _setup_logging(is_debug):
+    lvl = logging.DEBUG if is_debug else logging.INFO
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.DEBUG)
+
+    # Setting for stream handler
+    logging.basicConfig(format="%(message)s", level=lvl)
+
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    # Set maximum log size to 100MB, if exceed, the oldeset old will be rotated out
+    file_handler = RotatingFileHandler("debug.log", maxBytes=100000000)
+    file_handler.setFormatter(formatter)
+    file_handler.setLevel(logging.DEBUG)
+    root_logger.addHandler(file_handler)
+
+
 def _main():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     data_basepath = 'data'
@@ -89,14 +112,17 @@ def _main():
                         help="List all available openai.universe games")
     parser.add_argument('game', nargs='?', default='Breakout-v0',
                         help="The openai.universe game-id to run")
+    parser.add_argument('-d', '--debug', action='store_true',
+                        help='Enable debug output')
     args = parser.parse_args()
+    _setup_logging(args.debug)
 
     if args.list_games:
         for game in sorted([env_spec.id for env_spec in gym.envs.registry.all()]):
-            print game
-
+            print(game)
     else:
         _play_game(args)
+
 
 if __name__ == '__main__':
     _main()
