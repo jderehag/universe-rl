@@ -48,8 +48,8 @@ class DQN(object):
                  epsilon_anneal_over_frames=1000000.0,
                  batch_size=32,
                  q_target_update_interval=10000,
-                 frames_per_action=1,
-                 observe_state_length=50000,
+                 frames_per_action=4,
+                 observe_state_length=500,
                  observations_per_state=4):
 
         # Constants
@@ -98,6 +98,11 @@ class DQN(object):
         Returns:
             action(int): The selected action as an index into the list of possible actions
         '''
+        self._timestep += 1
+
+        if self._timestep % self._frames_per_action != 0:
+            return action
+
         observation = self._remove_channels(observation)
 
         if not self._is_initialized:
@@ -110,7 +115,6 @@ class DQN(object):
 
         action = self._epsilon_greedy_action()
 
-        self._timestep += 1
         return action
 
     @property
@@ -170,13 +174,11 @@ class DQN(object):
         self._current_state = new_state
 
     def _epsilon_greedy_action(self):
-        action = 0  # Assume action=0 means do nothing
-        if self._timestep % self._frames_per_action == 0:
-            if random.random() <= self._epsilon:
-                action = random.randrange(self._actions)
-            else:
-                qvalue = self._q_model.predict_on_batch(np.asarray([self._current_state]))[0]
-                action = np.argmax(qvalue)
+        if random.random() <= self._epsilon:
+            action = random.randrange(self._actions)
+        else:
+            qvalue = self._q_model.predict_on_batch(np.asarray([self._current_state]))[0]
+            action = np.argmax(qvalue)
 
         # Update epsilon
         if self.state == 'explore':
