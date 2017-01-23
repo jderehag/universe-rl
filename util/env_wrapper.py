@@ -120,7 +120,7 @@ class _MinimalistActionSpace(SafeActionSpace):
         super(_MinimalistActionSpace, self).__init__(env)
 
         if isinstance(self.action_space, gym.spaces.discrete.Discrete):
-            setattr(self.action_space, 'actions', xrange(0, self.action_space.n))
+            setattr(self.action_space, 'actions', range(0, self.action_space.n))
 
         elif isinstance(self.action_space, universe.spaces.vnc_action_space.VNCActionSpace):
             # Actions are stored as a list of actions => self.keys.append(down_action) self.keys.append(up_action)
