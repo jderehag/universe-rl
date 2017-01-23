@@ -27,10 +27,12 @@ import os
 import random
 import time
 
+from keras.callbacks import TensorBoard
 from keras.models import Sequential, load_model
 from keras.layers import Dense, Activation, Flatten
 from keras.layers import Convolution2D
 
+import tensorflow as tf
 import numpy as np
 
 from util.ringbuffer import RingBuffer
@@ -54,10 +56,12 @@ class DQN(object):
                  observe_state_length=50000,
                  observations_per_state=4):
 
+        #############################################
         # Constants
+        #############################################
         self._actions = possible_actions
         self._checkpointpath = checkpointpath
-        self._summarypath = summarypath
+        self._summarypath = os.path.join(summarypath, str(datetime.datetime.now()))
         self._gamma = gamma
         self._epsilon = epsilon_init
         self._epsilon_final = epsilon_final
@@ -70,16 +74,38 @@ class DQN(object):
 
         self._replay_memory = RingBuffer(replay_memory_size, dtype=np.ndarray)
 
+        #############################################
         # Counters
+        #############################################
         self._timestep = 0
         self._prev_timestep = 0
         self._prev_timestamp = time.clock()
+        self._episode_score = 0
+        self._current_score = 0
 
+        tf.scalar_summary(r'game/score',
+                          tf.Variable(initial_value=0, dtype=tf.int64, name='score'), name='score')
+        tf.scalar_summary(r'game/fps',
+                          tf.Variable(initial_value=0.0, dtype=tf.float32, name='fps'), name='fps')
+        tf.scalar_summary(r'agent/epsilon (exploration probability)',
+                          tf.Variable(initial_value=0.0, dtype=tf.float32, name='epsilon'), name='epsilon')
+        self._summaries = tf.merge_all_summaries()
+        self._summarywriter = tf.train.SummaryWriter(self._summarypath)
+
+
+        ####################################################################
+        # Models
         # Models are created at first observation (lazy initialization)
+        ####################################################################
         self._is_initialized = False
         self._current_state = None
         self._q_model = None
         self._q_model_t = None
+
+        ####################################################################
+        # Summaries and checkpoints
+        ####################################################################
+        self._tensorboard = TensorBoard(log_dir=self._summarypath, write_graph=False)
         try:
             os.makedirs(self._checkpointpath)
             os.makedirs(self._summarypath)
@@ -106,6 +132,8 @@ class DQN(object):
             action(int): The selected action as an index into the list of possible actions
         '''
         self._timestep += 1
+
+        self._update_counters(reward, terminal)
 
         if self._timestep % self._frames_per_action != 0:
             return action
@@ -168,7 +196,8 @@ class DQN(object):
                 reward = reward + self._gamma * np.max(qvalue_t)
             qvalue_t[action] = reward
 
-        self._q_model.fit(np.asarray(state_batch), qvalue_t_batch, verbose=0, batch_size=self._batch_size)
+        self._q_model.fit(np.asarray(state_batch), qvalue_t_batch, verbose=0,
+                          batch_size=self._batch_size, callbacks=[self._tensorboard])
 
         if self._timestep % self._q_target_update_interval == 0:
             self._copy_target_qnetwork()
@@ -226,7 +255,7 @@ class DQN(object):
             self._q_model.add(Dense(self._actions))
             self._q_model.add(Activation('linear'))
 
-            self._q_model.compile(loss='mean_squared_error', optimizer='rmsprop', metrics=['accuracy'])
+            self._q_model.compile(loss='mean_squared_error', optimizer='rmsprop')
 
         # Copy _q_model into _q_model_t
         self._q_model_t = copy.copy(self._q_model)
@@ -234,6 +263,23 @@ class DQN(object):
 
     def _copy_target_qnetwork(self):
         self._q_model_t.set_weights(self._q_model.get_weights())
+
+    def _update_counters(self, reward, terminal):
+        self._current_score += reward
+        if terminal:
+            self._episode_score = self._current_score
+            self._current_score = 0
+
+        if self._timestep % 100 == 0:
+            new_timestamp = time.clock()
+            fps = (self._timestep - self._prev_timestep) / (new_timestamp - self._prev_timestamp)
+            self._prev_timestamp = new_timestamp
+            self._prev_timestep = self._timestep
+
+            with tf.Session() as sess:
+                counters = {'fps:0': fps, 'epsilon:0': self._epsilon, 'score:0': self._episode_score}
+                result = sess.run([self._summaries], feed_dict=counters)
+                self._summarywriter.add_summary(result[0], global_step=self._timestep)
 
     @staticmethod
     def _remove_channels(observation):
