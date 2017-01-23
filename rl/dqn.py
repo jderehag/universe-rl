@@ -26,7 +26,7 @@ import random
 import time
 
 from keras.models import Sequential
-from keras.layers import Dense, Dropout, Activation, Flatten
+from keras.layers import Dense, Activation, Flatten
 from keras.layers import Convolution2D
 
 import numpy as np
@@ -199,16 +199,13 @@ class DQN(object):
 
         self._q_model.add(Convolution2D(64, 4, 4, subsample=(2, 2)))
         self._q_model.add(Activation('relu'))
-        self._q_model.add(Dropout(0.25))
 
         self._q_model.add(Convolution2D(64, 3, 3, subsample=(1, 1), border_mode='same'))
         self._q_model.add(Activation('relu'))
-        self._q_model.add(Dropout(0.25))
 
         self._q_model.add(Flatten())
         self._q_model.add(Dense(512))
         self._q_model.add(Activation('relu'))
-        self._q_model.add(Dropout(0.5))
 
         self._q_model.add(Dense(self._actions))
         self._q_model.add(Activation('linear'))
