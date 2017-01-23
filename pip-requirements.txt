@@ -29,10 +29,9 @@
 ######################################################
 
 # Additional (non-pip) requirements
-# sudo apt-get install swig python-opencv cmake zlib1g-dev
+# sudo apt-get install swig python-opencv cmake zlib1g-dev libhdf5-dev
 
 universe
 tensorflow
 gym[all]
-
-
+h5py

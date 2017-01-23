@@ -21,11 +21,13 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWIS
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 '''
 import copy
+import datetime
 import logging
+import os
 import random
 import time
 
-from keras.models import Sequential
+from keras.models import Sequential, load_model
 from keras.layers import Dense, Activation, Flatten
 from keras.layers import Convolution2D
 
@@ -49,7 +51,7 @@ class DQN(object):
                  batch_size=32,
                  q_target_update_interval=10000,
                  frames_per_action=4,
-                 observe_state_length=500,
+                 observe_state_length=50000,
                  observations_per_state=4):
 
         # Constants
@@ -78,6 +80,11 @@ class DQN(object):
         self._current_state = None
         self._q_model = None
         self._q_model_t = None
+        try:
+            os.makedirs(self._checkpointpath)
+            os.makedirs(self._summarypath)
+        except OSError:
+            pass
 
     def get_action(self, observation, action, reward, terminal):
         '''
@@ -165,6 +172,7 @@ class DQN(object):
 
         if self._timestep % self._q_target_update_interval == 0:
             self._copy_target_qnetwork()
+            self._q_model.save(os.path.join(self._checkpointpath, str(datetime.datetime.now()) + '.h5'))
 
     def _new_state(self, observation, action, reward, terminal):
         # Copy current-state (excluding oldest frame) and append new observation at end
@@ -192,27 +200,33 @@ class DQN(object):
         self._init_convnets(observation)
 
     def _init_convnets(self, observation):
-        input_dimension = list(observation.shape[:2]) + [self._observations_per_state]
+        checkpoints = sorted(os.listdir(self._checkpointpath))
+        if len(checkpoints) > 0:
+            checkpoint = os.path.join(self._checkpointpath, checkpoints[-1])
+            logger.warn('Loading checkpoint:%s', checkpoint)
+            self._q_model = load_model(checkpoint)
+        else:
+            input_dimension = list(observation.shape[:2]) + [self._observations_per_state]
 
-        self._q_model = Sequential()
-        self._q_model.add(Convolution2D(32, 8, 8, subsample=(4, 4), border_mode='same',
-                                        input_shape=input_dimension, dim_ordering='tf'))
-        self._q_model.add(Activation('relu'))
+            self._q_model = Sequential()
+            self._q_model.add(Convolution2D(32, 8, 8, subsample=(4, 4), border_mode='same',
+                                            input_shape=input_dimension, dim_ordering='tf'))
+            self._q_model.add(Activation('relu'))
 
-        self._q_model.add(Convolution2D(64, 4, 4, subsample=(2, 2)))
-        self._q_model.add(Activation('relu'))
+            self._q_model.add(Convolution2D(64, 4, 4, subsample=(2, 2)))
+            self._q_model.add(Activation('relu'))
 
-        self._q_model.add(Convolution2D(64, 3, 3, subsample=(1, 1), border_mode='same'))
-        self._q_model.add(Activation('relu'))
+            self._q_model.add(Convolution2D(64, 3, 3, subsample=(1, 1), border_mode='same'))
+            self._q_model.add(Activation('relu'))
 
-        self._q_model.add(Flatten())
-        self._q_model.add(Dense(512))
-        self._q_model.add(Activation('relu'))
+            self._q_model.add(Flatten())
+            self._q_model.add(Dense(512))
+            self._q_model.add(Activation('relu'))
 
-        self._q_model.add(Dense(self._actions))
-        self._q_model.add(Activation('linear'))
+            self._q_model.add(Dense(self._actions))
+            self._q_model.add(Activation('linear'))
 
-        self._q_model.compile(loss='mean_squared_error', optimizer='rmsprop', metrics=['accuracy'])
+            self._q_model.compile(loss='mean_squared_error', optimizer='rmsprop', metrics=['accuracy'])
 
         # Copy _q_model into _q_model_t
         self._q_model_t = copy.copy(self._q_model)
